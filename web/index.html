@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<body translate="no">
+
+
+
+
+<main role="main" class="container">
+<h4 style="margin-top:0.75rem;">Orientation</h4>
+<ul>
+<li>X-axis (β): <span id="Orientation_b">0</span><span>°</span></li>
+<li>Y-axis (γ): <span id="Orientation_g">0</span><span>°</span></li>
+<li>Z-axis (α): <span id="Orientation_a">0</span><span>°</span></li>
+<li>json: <span id="Orientation_json">0</span></li>
+</ul>
+<h4>Accelerometer</h4>
+<ul>
+<li>X-axis: <span id="Accelerometer_x">0</span><span> m/s<sup>2</sup></span></li>
+<li>Y-axis: <span id="Accelerometer_y">0</span><span> m/s<sup>2</sup></span></li>
+<li>Z-axis: <span id="Accelerometer_z">0</span><span> m/s<sup>2</sup></span></li>
+<li>Data Interval: <span id="Accelerometer_i">16.00</span><span> ms</span></li>
+<li>json: <span id="handleMotion_json">0</span></li>
+</ul>
+<h4>Accelerometer including gravity</h4>
+<ul>
+<li>X-axis: <span id="Accelerometer_gx">0</span><span> m/s<sup>2</sup></span></li>
+<li>Y-axis: <span id="Accelerometer_gy">0</span><span> m/s<sup>2</sup></span></li>
+<li>Z-axis: <span id="Accelerometer_gz">0</span><span> m/s<sup>2</sup></span></li>
+</ul>
+<h4>Gyroscope</h4>
+<ul>
+<li>X-axis: <span id="Gyroscope_x">0</span><span>°/s</span></li>
+<li>Y-axis: <span id="Gyroscope_y">0</span><span>°/s</span></li>
+<li>Z-axis: <span id="Gyroscope_z">0</span><span>°/s</span></li>
+</ul>
+
+</main>
+<h2>WebSocket Test</h2>
+<div id="output"></div>
+<button onclick="testWebSocket()">testWebSocket</button>
+<button onclick="doSend(&#39;hello&#39;)">hello</button>
+<button onclick="websocket.close()">close</button>
+<script>
+var wsUri = "ws://192.168.1.188:8181/"; 
+//var wsUri = "ws://127.0.0.1:8181/"; 
+
+var websocket;
+function testWebSocket() {
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) {
+        onOpen(evt)
+    };
+    websocket.onclose = function(evt) {
+        onClose(evt)
+    };
+    websocket.onmessage = function(evt) {
+        onMessage(evt)
+    };
+    websocket.onerror = function(evt) {
+        onError(evt)
+    };
+}
+
+function onOpen(evt) {
+    writeToScreen("CONNECTED");
+    doSend("WebSocket rocks");
+}
+
+function onClose(evt) {
+    writeToScreen("DISCONNECTED");
+}
+
+function onMessage(evt) {
+    writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
+    //websocket.close();
+}
+
+function onError(evt) {
+    writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+}
+
+function doSend(message) {
+  if(websocket && websocket.readyState == 1)//1 : open
+  {
+    //writeToScreen("SENT: " + message);
+    websocket.send(message);
+  }
+}
+
+function writeToScreen(message) {
+    var pre = document.createElement("p");
+    pre.style.wordWrap = "break-word";
+    pre.innerHTML = message;
+    document.getElementById("output").appendChild(pre);
+}
+  var time = 0;
+  function handleOrientation(event) {
+    time = (time+1)%10;
+    if(time != 0)
+        return;
+    
+    updateFieldIfNotNull('Orientation_a', event.alpha);
+    updateFieldIfNotNull('Orientation_b', event.beta);
+    updateFieldIfNotNull('Orientation_g', event.gamma);
+    jstr = JSON.stringify({t:"abg", a:event.alpha, b:event.beta, g:event.gamma});
+    updateFieldIfNotNull_S('Orientation_json', jstr);
+    
+    doSend(jstr);
+  }
+
+  
+
+  function updateFieldIfNotNull(fieldName, value, precision=10){
+    if (value != null)
+      document.getElementById(fieldName).innerHTML = value.toFixed(precision);
+  }
+  
+  function updateFieldIfNotNull_S(fieldName, str){
+    document.getElementById(fieldName).innerHTML = str;
+  }
+
+
+  function handleMotion(event) {
+    updateFieldIfNotNull('Accelerometer_gx', event.accelerationIncludingGravity.x);
+    updateFieldIfNotNull('Accelerometer_gy', event.accelerationIncludingGravity.y);
+    updateFieldIfNotNull('Accelerometer_gz', event.accelerationIncludingGravity.z);
+
+    updateFieldIfNotNull('Accelerometer_x', event.acceleration.x);
+    updateFieldIfNotNull('Accelerometer_y', event.acceleration.y);
+    updateFieldIfNotNull('Accelerometer_z', event.acceleration.z);
+
+    updateFieldIfNotNull('Accelerometer_i', event.interval, 2);
+
+    updateFieldIfNotNull('Gyroscope_z', event.rotationRate.alpha);
+    updateFieldIfNotNull('Gyroscope_x', event.rotationRate.beta);
+    updateFieldIfNotNull('Gyroscope_y', event.rotationRate.gamma);
+    
+    jstr = JSON.stringify({t:"xyz", x:event.acceleration.x,y:event.acceleration.y,z:event.acceleration.z});
+    updateFieldIfNotNull_S('handleMotion_json', jstr);
+    //doSend(jstr);
+
+  }
+
+  //window.addEventListener("devicemotion", handleMotion);
+  window.addEventListener("deviceorientation", handleOrientation);
+if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission()
+        .then(permissionState => {
+          if (permissionState === 'granted') {
+            window.addEventListener('devicemotion', () => {});
+          }
+        })
+        .catch(console.error);
+    } else {
+      // handle regular non iOS 13+ devices
+    }
+  </script>
+
+
+
+
+</body></html>
